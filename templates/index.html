@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Trip Planner PRO</title>
+
+<link rel="stylesheet" href="/static/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    ✈ AI Trip Planner PRO
+</div>
+<div class="bg-orbs">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+<div class="container">
+
+<!-- FORM -->
+<div class="card form-card">
+    <h2>🚀 Plan Your Dream Trip</h2>
+
+    <form method="POST" action="/">
+        <input name="source" id="source" placeholder="📍 From" required>
+        <input name="destination" id="destination" placeholder="📍 To" required>
+        <input name="days" type="number" placeholder="📅 Days" required>
+        <input name="budget" type="number" placeholder="💰 Budget ₹" required>
+
+        <button type="submit" class="btn">✨ Generate Plan</button>
+    </form>
+
+    <div id="loadingScreen" class="hidden">
+        <div class="spinner"></div>
+        <p>🤖 AI is planning your trip...</p>
+    </div>
+</div>
+
+{% if result %}
+
+<div class="layout">
+
+<!-- AI PLAN -->
+<div class="card">
+    <h2>🌟 Your Journey</h2>
+    <div id="typingPlan"></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="floating-panel">
+
+<!-- ROUTES -->
+<div class="card">
+    <h3>🛣 Routes</h3>
+
+    <div class="tabs">
+        <button onclick="showRoute('car')">🚗</button>
+        <button onclick="showRoute('bus')">🚌</button>
+        <button onclick="showRoute('train')">🚆</button>
+        <button onclick="showRoute('flight')">✈️</button>
+    </div>
+
+    <div class="route-box">
+        <h4 id="routeTitle">Select Transport</h4>
+        <p id="routeInfo"></p>
+        <ul id="routePath"></ul>
+    </div>
+
+    <iframe id="mapFrame" class="map"></iframe>
+
+    <div class="highlight">
+        💰 Cheapest: {{ result.routes.best.cheapest }} <br>
+        ⚡ Fastest: {{ result.routes.best.fastest }}
+    </div>
+</div>
+
+<!-- BOOK BUTTON -->
+<button class="btn book-btn" onclick="openModal()">💳 Book Now</button>
+
+<!-- BUDGET -->
+<div class="card">
+    <h3>💳 Budget</h3>
+
+    <p>Total: ₹{{ result.budget }}</p>
+    <p>Used: ₹{{ result.cost.total }}</p>
+    <p class="green">Remaining: ₹{{ result.cost.remaining }}</p>
+
+    <div class="progress">
+        <div class="bar" style="width: {{ result.percent }}%"></div>
+    </div>
+</div>
+
+</div>
+</div>
+
+{% endif %}
+</div>
+
+<!-- BOOKING MODAL -->
+<div id="modal" class="modal">
+<div class="modal-box">
+
+<h2>💳 Confirm Booking</h2>
+<p>Proceed with your travel booking?</p>
+
+<button id="confirmBtn" class="btn">Confirm</button>
+<button class="btn cancel" onclick="closeModal()">Cancel</button>
+
+<div id="paymentLoading" class="hidden">
+    <div class="spinner"></div>
+    <p>Processing Payment...</p>
+</div>
+
+<div id="paymentSuccess" class="hidden">
+    <h3>🎉 Booking Confirmed!</h3>
+    <p>Your trip has been successfully booked</p>
+    <button class="btn" onclick="closeModal()">Done</button>
+</div>
+
+</div>
+</div>
+
+<!-- JS -->
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+    // LOADING SCREEN
+    document.querySelector("form").addEventListener("submit", function(){
+        document.getElementById("loadingScreen").classList.remove("hidden");
+    });
+
+    // AI TYPE EFFECT
+    {% if result %}
+    let plan = {{ result.plan | tojson }};
+    let i = 0;
+
+    function typeEffect(){
+        if(i < plan.length){
+
+            let card = document.createElement("div");
+            card.className = "ai-card";
+
+            card.innerHTML = `
+                <div class="ai-header">Step ${i+1}</div>
+                <div class="ai-text">${plan[i]}</div>
+            `;
+
+            document.getElementById("typingPlan").appendChild(card);
+
+            i++;
+            setTimeout(typeEffect, 400);
+        }
+    }
+    typeEffect();
+    {% endif %}
+
+    // ROUTES
+    const routes = {{ result.routes | tojson if result else '{}' }};
+
+    window.showRoute = function(mode){
+        if(!routes[mode]) return;
+
+        let data = routes[mode];
+
+        document.getElementById("routeTitle").innerText = mode.toUpperCase();
+        document.getElementById("routeInfo").innerText = data.time + " | ₹" + data.price;
+
+        let html = "";
+        if(data.path){
+            data.path.forEach(p => html += `<li>➡ ${p}</li>`);
+        }
+        document.getElementById("routePath").innerHTML = html;
+
+        let source = document.getElementById("source").value;
+        let dest = document.getElementById("destination").value;
+
+        document.getElementById("mapFrame").src =
+            `https://www.google.com/maps?q=${source}+to+${dest}&output=embed`;
+    }
+
+    // BOOKING FLOW
+    const confirmBtn = document.getElementById("confirmBtn");
+
+    confirmBtn.addEventListener("click", function(){
+        confirmBtn.style.display = "none";
+        document.getElementById("paymentLoading").classList.remove("hidden");
+
+        setTimeout(() => {
+            document.getElementById("paymentLoading").classList.add("hidden");
+            document.getElementById("paymentSuccess").classList.remove("hidden");
+        }, 2000);
+    });
+
+    window.openModal = function(){
+        document.getElementById("modal").classList.add("show");
+
+        confirmBtn.style.display = "block";
+        document.getElementById("paymentLoading").classList.add("hidden");
+        document.getElementById("paymentSuccess").classList.add("hidden");
+    }
+
+    window.closeModal = function(){
+        document.getElementById("modal").classList.remove("show");
+    }
+
+});
+</script>
+document.querySelectorAll(".card").forEach(card => {
+
+    card.addEventListener("mousemove", (e)=>{
+
+        const rect = card.getBoundingClientRect();
+
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const rotateY = ((x / rect.width)-0.5)*15;
+        const rotateX = ((y / rect.height)-0.5)*-15;
+
+        card.style.transform =
+        `rotateX(${rotateX}deg)
+         rotateY(${rotateY}deg)
+         translateY(-8px)`;
+    });
+
+    card.addEventListener("mouseleave", ()=>{
+        card.style.transform =
+        "rotateX(0) rotateY(0)";
+    });
+
+});

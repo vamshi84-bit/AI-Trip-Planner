@@ -1,0 +1,20 @@
+ai_trip_planner/
+│
+├── app.py
+├── requirements.txt  
+├── .env
+│
+├── services/
+│   ├── ai_service.py
+│   ├── cost_service.py
+│   ├── analytics_service.py
+│
+├── templates/
+│   ├── index.html
+│   ├── payment.html
+│   ├── success.html
+│   ├── dashboard.html
+│
+├── static/
+│   ├── style.css
+│
